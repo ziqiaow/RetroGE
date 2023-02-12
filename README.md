@@ -4,6 +4,6 @@ A Retrospective Likelihood Method for joint modeling of gene-environment interac
 
 **Reference**
 
-* Ziqiao Wang, Wen Shi, Raymond J. Carrol, and Nilanjan Chatterjee. Joint Modeling of Gene-Environment Correlations and Interactions
-using Polygenic Risk Scores in Case-Control Studies. 2023+
+* Ziqiao Wang, Wen Shi, Raymond J. Carrol, and Nilanjan Chatterjee (2023). Joint Modeling of Gene-Environment Correlations and Interactions
+using Polygenic Risk Scores in Case-Control Studies.
 
