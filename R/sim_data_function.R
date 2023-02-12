@@ -1,5 +1,5 @@
 #-------------------------------------------------
-#Simulate case-control data from an underlying cohort of 10^6 individuals
+#Simulate case-control data from a prospective cohort of 10^6 individuals
 #The underlying disease model can incorporate multivariate independent and PRS-dependent environmental variables and their interaction terms with PRS 
 #The PRS normal model allows correlated environmental variables and stratification factors in the mean function and heteroskedasticity in the variance
 #The number of cases and controls, log odds ratio parameters, regression coefficients can all be user-specified
