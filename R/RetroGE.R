@@ -10,20 +10,14 @@
 #If there is no stratification factor s: input: formula_prs=prs~1, s.var=NULL
 #facVar is the factor variable for sigma, can be NULL
 prs_e_function_gr <- function(data = dat0,
-                              formula = D ~ prs + envir1 + envir2 + factor(s1) +
-                                s2 + envir1:prs + envir2:prs + factor(s1):prs + s2:prs,
-                              #Make sure that Disease is coded as 1 and control is coded as 0.
+                              formula = D ~ prs + envir1 + envir2 + factor(s1) + s2 + envir1:prs + envir2:prs + factor(s1):prs + s2:prs, #Make sure that Disease is coded as 1 and control is coded as 0.
                               formula_prs = prs ~ factor(s1) + s2,
-                              facVar = c("s1"),
-                              #The factor variable for sigma in constructing PRS, can be any factor variable with different levels as user defined. Only accept one variable input or NULL.
-                              initial_empirical = T,
-                              #Use logistic regression to assign initial value for optim() for MLE and linear regression on the control samples for the stratification variables S.
-                              initial_eta_sigma = c(1, 0.4, 0.8, 0.9, 0.25, 0.5, 1),
-                              #The initial value for the stratification variables S. If initial_empirical = T, then this condition will be ignored.
-                              numDeriv = F,
-                              #Whether to use analytical score function for MLE or numerical gradient values, note that the two results are similar but analytical is faster
-                              side0 = 2) {
-  #this is the wald test side, default is 2-sided test
+                              facVar = c("s1"), #The factor variable for sigma in constructing PRS, can be any factor variable with different levels as user defined. Only accept one variable input or NULL.
+                              initial_empirical = T, #Use logistic regression to assign initial value for optim() for MLE and linear regression on the control samples for the stratification variables S.
+                              initial_eta_sigma = c(1, 0.4, 0.8, 0.9, 0.25, 0.5, 1), #The initial value for the stratification variables S. If initial_empirical = T, then this condition will be ignored.
+                              numDeriv = F, #Whether to use analytical score function for MLE or numerical gradient values, note that the two results are similar but analytical is faster
+                              side0 = 2) #this is the wald test side, default is 2-sided test
+  {
   data = data.frame(data)
   options(na.action = "na.pass")
   data_input = model.matrix(formula, data = data)
