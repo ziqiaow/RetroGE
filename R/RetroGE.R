@@ -1,12 +1,15 @@
+#------------------------------------------------------------------
 #PRS x E functions
 #1. The proposed retrospective likelihood method
 #2. Case-only method designed for the simulation study
+#Feb 12, 2023
+#------------------------------------------------------------------
 
 
 #1. The proposed retrospective likelihood method
 #If there is no stratification factor s: input: formula_prs=prs~1, s.var=NULL
 #facVar is the factor variable for sigma, can be NULL
-RetroGE <- function(data=dat0,
+prs_e_function_gr <- function(data=dat0,
                               formula=D ~prs+envir1 +envir2+factor(s1)+s2+envir1:prs+envir2:prs+factor(s1):prs+s2:prs, #Make sure that Disease is coded as 1 and control is coded as 0.
                               formula_prs=prs~factor(s1)+s2,
                               facVar=c("s1"), #The factor variable for sigma in constructing PRS, can be any factor variable with different levels as user defined. Only accept one variable input or NULL.
