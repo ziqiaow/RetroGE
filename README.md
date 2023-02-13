@@ -14,7 +14,7 @@ We provide an example for running RetroGE functions.
 ### Results
 The complete results for the data analysis of UK Biobank is available in R markdown:
 For incident breast cancer of both postmenopausal and premenopausal women: [breast cancer](results/UKB_breastcancer.html). 
-For incident colorectal cancer: [colorectal cancer](results/report_colorectal.html). 
+For incident colorectal cancer: [colorectal cancer]([results/report_colorectal.html](https://raw.githack.com/ziqiaow/RetroGE/main/results/UKB_breastcancer.html)). 
 
 ### Questions
 Please direct any questions/suggestions to zwang389@jhu.edu or wzqjanet@gmail.com
