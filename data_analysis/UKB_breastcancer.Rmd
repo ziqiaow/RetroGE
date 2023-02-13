@@ -1,0 +1,809 @@
+---
+title: "UKBiobank Breast Cancer Analysis"
+author: "Ziqiao Wang"
+date: "2022-11-06"
+output:
+  pdf_document:
+    toc: yes
+    toc_depth: '4'
+    number_sections: true
+  html_document:
+    
+    toc: yes
+    toc_depth: 4
+    number_sections: true
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Breast Cancer, PRS, and Environmental Variables Summary
+
+We first took unrelated female subjects from the UK Biobank study. Then we selected and derived 9 classical risk factors including age, parity, age at first birth, alcohol, height, BMI, age at menopause (for post-menopause women), age at menarche, and use of oral contraceptive pill. There was no information on breast cancer family history and so we did not include it into the mode. In addition, for post-menopause women, we included HRT use. We also included the top 10 PCs (code 22009). All the data was extracted from /dcl01/arking/data/UK_Biobank/static/Phenotype/Downloads/tab_delim/ukb45830.tab and /dcl01/arking/data/UK_Biobank/active/pheno/ukbPheno_032022.rds. Age at menopause was extracted from DNAnexus as it was not found in the above two files. 
+
+For breast cancer data, we used ICD9 (code 40013) and ICD10 (code 40006) in UK Biobank data. To find incident breast cancer data, we compared the age at cancer diagnosis (code 40008) with the age at recruitment. In particular, from previous publications, bilateral breast cancer and breast cancer in situ (stage 0 breast cancer) should be excluded from the study. There was no information on bilateral breast cancer and given that they are highly rare, we only excluded breast cancer in situ. For this work, we used incident breast cancer patients.
+
+
+Next we selected geographical data and social economic data. The assessment centre at which a participant consented was assigned a numerical code (field 54 in the UK Biobank data). In analyses adjusted
+for assessment centre, these codes were treated as factor variables. Participants who were born in the United Kingdom were asked to name their place of birth during a verbal interview at study assessment centres. These answers were used to derive approximate North and East co-ordinates (rounded values, recorded on a metre grid scale from an origin South-West of the UK, fields 129 and 130 in the UK Biobank data). Values less than zero were coded as missing for both variables (Haworth et al. Nature Communications 2019). We also selected education data and household-income to include in the study.
+
+```{r,echo=FALSE, results='hide'}
+dat0=readRDS("C:/Users/ziqia/Desktop/work/GXE/ukbiobank/data/pheno_clean_unrelated_female_geo.rds")
+```
+
+```{r}
+
+
+#For our analysis, select: 1. european; 2. post-menopause/pre-menopause; 3. age by category; 4. see the complete dataset (no NA) number; 5. incident cancer cases
+dat0=dat0[which(dat0$race=="White"),]
+table(dat0$breast_cancer)  # 0 is control; 1 is breast cancer; 2 is breast cancer in situ
+#add age by category
+dat0$agegroups<-cut(dat0$age, breaks=c( 40, 50,60,70,80), right = FALSE)
+table(dat0$oral.contraceptive.ever)
+dat0$oral.contraceptive.ever[which(dat0$oral.contraceptive.ever=="-3" | dat0$oral.contraceptive.ever=="-1")]=NA
+dat0$age.start.oc[which(dat0$age.start.oc=="-3" | dat0$age.start.oc=="-1")]=NA
+dat0$age.last.oc[which(dat0$age.last.oc=="-3" | dat0$age.last.oc=="-1")]=NA
+dat0$oral.contraceptive.current=dat0$oral.contraceptive.ever
+dat0$oral.contraceptive.current[which(dat0$age.last.oc=="-11")]="current"
+dat0$oral.contraceptive.current[which(dat0$oral.contraceptive.current=="0")]="never"
+dat0$oral.contraceptive.current[which(dat0$oral.contraceptive.current=="1")]="former"
+dat0$age.last.oc[which(dat0$age.last.oc=="-11")]=dat0$age[which(dat0$age.last.oc=="-11")]
+dat0$length.oc=as.numeric(as.character(dat0$age.last.oc))-as.numeric(as.character(dat0$age.start.oc))
+dat0$length.oc[which(dat0$oral.contraceptive.ever==0)]=0
+dat0$oc.cate=NA
+dat0$oc.cate[which(dat0$oral.contraceptive.ever==0 | dat0$length.oc<10)]=0  
+dat0$oc.cate[which( dat0$length.oc>=10)]=1  
+table(dat0$menopause,dat0$breast_cancer)
+table(dat0$menopause,dat0$breast_cancer,dat0$breast_cancer_incident)
+dat0=dat0[which(dat0$breast_cancer!=2),] #exclude in situ bc
+dat0=dat0[-which(dat0$breast_cancer==1 & dat0$breast_cancer_incident!=1),] #exclude non-incident bc
+
+
+```
+
+
+## PRS
+We used the PRS calculator provided by PGSCatalog based on 313 SNPs (Polygenic Score (PGS) ID: PGS000004). The genome build is hg19. After matching with our data and data cleaning, 276 SNPs were used for the calculation. The OR per SD change for breast cancer in UKBiobank is 1.58 for all women; 1.56 for post-menopause women and 1.63 for pre-menopause women. This result is close to the reported OR 1.61 in the manuscript by Mavaddat N et al. Am J Hum Genet (2018).
+
+```{r}
+
+dat0$prs_scaled=scale(dat0$prs_bc,center = T,scale = T)
+fit <- glm(breast_cancer~prs_scaled+PC1+PC2+PC3+PC4+PC5+PC6+PC7+PC8+PC9+PC10, data=dat0,family = binomial(), model = FALSE, x = FALSE, y = FALSE)
+summary(fit)
+exp(0.4545)
+
+
+dat0_postmeno_bc=dat0[which(dat0$menopause=="Yes" ),]
+table(dat0_postmeno_bc$breast_cancer)
+dat0_postmeno_bc$prs_scaled=scale(dat0_postmeno_bc$prs_bc,center = T,scale = T)
+fit <- glm(breast_cancer~prs_scaled+PC1+PC2+PC3+PC4+PC5+PC6+PC7+PC8+PC9+PC10, data=dat0_postmeno_bc,family = binomial(), model = FALSE, x = FALSE, y = FALSE)
+summary(fit)
+exp(0.441668)
+
+```
+
+```{r}
+colnames(dat0_postmeno_bc)[7]="age.menarche"
+dat0_postmeno_bc$n.children=as.numeric(as.character(dat0_postmeno_bc$n.children))
+dat0_postmeno_bc$age.menopause=as.numeric(as.character(dat0_postmeno_bc$age.menopause))
+dat0_postmeno_bc$n.children[which(dat0_postmeno_bc$n.children=="-3")]=NA
+#winsorization
+dat0_postmeno_bc$n.children.win=dat0_postmeno_bc$n.children
+dat0_postmeno_bc$n.children.win[which(dat0_postmeno_bc$n.children.win>=5)]=5
+dat0_postmeno_bc$alcohol=NA
+dat0_postmeno_bc$alcohol[which(dat0_postmeno_bc$AlcoholFreq=="Never" | dat0_postmeno_bc$AlcoholFreq== "Special occasions only")]=0
+dat0_postmeno_bc$alcohol[which(dat0_postmeno_bc$AlcoholFreq=="Daily or almost daily" | dat0_postmeno_bc$AlcoholFreq== "Three or four times a week" |
+                                 dat0_postmeno_bc$AlcoholFreq== "Once or twice a week" | dat0_postmeno_bc$AlcoholFreq=="One to three times a month"     )]=1
+dat0_postmeno_bc$age.firstbirth=as.numeric(as.character(dat0_postmeno_bc$age.firstbirth))
+dat0_postmeno_bc$age.firstbirth[which(dat0_postmeno_bc$age.firstbirth== -3 | dat0_postmeno_bc$age.firstbirth== -4)]=NA
+dat0_postmeno_bc$age.firstbirth[which(dat0_postmeno_bc$n.children==0)]=999
+dat0_postmeno_bc$age.firstbirth.group=NA
+dat0_postmeno_bc$age.firstbirth.group<-cut(dat0_postmeno_bc$age.firstbirth, breaks=c( 0, 25,35,80,1000), right = FALSE)
+dat0_postmeno_bc$age.menarche[which(dat0_postmeno_bc$age.menarche<0)]=NA
+dat0_postmeno_bc$birth.x[which(dat0_postmeno_bc$birth.x<0)]=NA
+dat0_postmeno_bc$birth.y[which(dat0_postmeno_bc$birth.y<0)]=NA
+```
+
+```{r,echo=FALSE, results='hide'}
+hrt=readRDS("C:/Users/ziqia/Desktop/work/GXE/ukbiobank/data/hrt_ukbiobank.rds")
+```
+
+```{r}
+#For post-menopause women, let's add the HRT use
+hrt=hrt[-1,]
+colnames(hrt)=c("IID","HRT.ever","age.start.hrt","age.last.hrt")
+dat0_postmeno_bc=merge(dat0_postmeno_bc,hrt,by="IID")
+dat0_postmeno_bc$HRT.ever[which(dat0_postmeno_bc$HRT.ever=="-3" | dat0_postmeno_bc$HRT.ever=="-1")]=NA
+dat0_postmeno_bc$age.start.hrt[which(dat0_postmeno_bc$age.start.hrt=="-3" | dat0_postmeno_bc$age.start.hrt=="-1")]=NA
+dat0_postmeno_bc$age.last.hrt[which(dat0_postmeno_bc$age.last.hrt=="-3" | dat0_postmeno_bc$age.last.hrt=="-1")]=NA
+dat0_postmeno_bc$age.last.hrt[which(dat0_postmeno_bc$age.last.hrt=="-11")]=dat0_postmeno_bc$age[which(dat0_postmeno_bc$age.last.hrt=="-11")]
+dat0_postmeno_bc$length.hrt=as.numeric(as.character(dat0_postmeno_bc$age.last.hrt))-as.numeric(as.character(dat0_postmeno_bc$age.start.hrt))
+dat0_postmeno_bc$length.hrt[which(dat0_postmeno_bc$HRT.ever==0)]=0
+summary(dat0_postmeno_bc$length.hrt)
+table(dat0_postmeno_bc$HRT.ever) #let's just include HRT use: ever/never
+
+
+```
+
+
+
+#  Post-Menopause Cohort
+
+##  Logistic Regression on Cohort Samples
+
+We first look at post-menopause women:
+
+```{r}
+dat_test=dat0_postmeno_bc[,c("IID","prs_bc","age","age.menarche","BMI","height","n.children.win","age.firstbirth",
+                             "breast_cancer","breast_cancer_incident","length.oc","oral.contraceptive.ever",
+                             "assessment_center","age.menopause","agegroups", "HRT.ever",
+                             "oc.cate" ,"alcohol","age.firstbirth.group","PC1","PC2","PC3","PC4","PC5","PC6","PC7","PC8","PC9","PC10")]
+
+dat_test=dat_test[complete.cases(dat_test),]
+table(dat_test$breast_cancer)
+table(dat_test$breast_cancer_incident)
+
+dim(dat_test)
+dat_test$prs_scaled=scale(dat_test$prs_bc,center = T,scale = T)
+dat_test$age.scale=scale(dat_test$age,center = T,scale=T)
+dat_test$age.menarche.scale=scale(dat_test$age.menarche,center = T,scale=T)
+dat_test$age.menopause.scale=scale(dat_test$age.menopause,center = T,scale=T)
+dat_test$n.children.scale=scale(dat_test$n.children.win,center=T,scale = T)
+dat_test$height.scale=scale(dat_test$height,center=T,scale = T)
+dat_test$BMI.scale=scale(dat_test$BMI,center=T,scale = T)
+dat_test$length.oc.scale=scale(dat_test$length.oc,center=T,scale = T)
+
+
+dat_location=dat0_postmeno_bc[,c("IID","birth.x","birth.y")]
+dat_test=merge(dat_test,dat_location,by="IID")
+dat_test$birth.x=scale(dat_test$birth.x,center=T,scale=T)
+dat_test$birth.y=scale(dat_test$birth.y,center=T,scale=T)
+
+#add oc category
+dat_test$oc.cate2=NA
+dat_test$oc.cate2[which(dat_test$oral.contraceptive.ever==0)]=0 
+dat_test$oc.cate2[which(dat_test$oral.contraceptive.ever==1 & dat_test$length.oc<10)]=1  
+dat_test$oc.cate2[which( dat_test$length.oc>=10)]=2 
+
+
+#more specified interval
+dat_test$oc.cate3=NA
+dat_test$oc.cate3[which(dat_test$oral.contraceptive.ever==0)]=0 
+dat_test$oc.cate3[which(dat_test$oral.contraceptive.ever==1 & dat_test$length.oc<5)]=1  
+dat_test$oc.cate3[which( dat_test$length.oc>=5 & dat_test$length.oc < 10)]=2 
+dat_test$oc.cate3[which( dat_test$length.oc>=10 & dat_test$length.oc < 15)]=3
+dat_test$oc.cate3[which( dat_test$length.oc>=15 )]=4
+
+
+```
+
+
+```{r}
+
+dat_test_complete=dat_test[complete.cases(dat_test),]
+table(dat_test_complete$breast_cancer)
+fit.int.all <- glm(breast_cancer~prs_scaled+PC1+PC2+PC3+PC4+PC5+PC6+PC7+PC8+PC9+PC10+HRT.ever+agegroups+n.children.scale+birth.x+birth.y+age.firstbirth.group+height.scale+age.menarche.scale+age.menopause.scale+length.oc.scale+BMI.scale+relevel(factor(dat_test_complete$assessment_center),ref = "11001")+alcohol+prs_scaled:HRT.ever+prs_scaled:birth.x+prs_scaled:birth.y+prs_scaled:length.oc.scale+prs_scaled:age.menopause.scale+prs_scaled:age.menarche.scale+prs_scaled:BMI.scale+prs_scaled:agegroups+prs_scaled:alcohol+prs_scaled:height.scale+prs_scaled:n.children.scale+prs_scaled:age.firstbirth.group, data=dat_test_complete,family = binomial(), model = FALSE, x = FALSE, y = FALSE)
+summary(fit.int.all)
+
+fit.int.all2 <- glm(breast_cancer~prs_scaled+PC1+PC2+PC3+PC4+PC5+PC6+PC7+PC8+PC9+PC10+HRT.ever+agegroups+n.children.scale+birth.x+birth.y+age.firstbirth.group+height.scale+age.menarche.scale+age.menopause.scale+factor(oc.cate2)+BMI.scale+relevel(factor(dat_test_complete$assessment_center),ref = "11001")+alcohol+prs_scaled:HRT.ever+prs_scaled:birth.x+prs_scaled:birth.y+prs_scaled:factor(oc.cate2)+prs_scaled:age.menopause.scale+prs_scaled:age.menarche.scale+prs_scaled:BMI.scale+prs_scaled:agegroups+prs_scaled:alcohol+prs_scaled:height.scale+prs_scaled:n.children.scale+prs_scaled:age.firstbirth.group, data=dat_test_complete,family = binomial(), model = FALSE, x = FALSE, y = FALSE)
+summary(fit.int.all2)
+
+
+fit.int.all3 <- glm(breast_cancer~prs_scaled+PC1+PC2+PC3+PC4+PC5+PC6+PC7+PC8+PC9+PC10+HRT.ever+agegroups+n.children.scale+birth.x+birth.y+age.firstbirth.group+height.scale+age.menarche.scale+age.menopause.scale+factor(oc.cate3)+BMI.scale+relevel(factor(dat_test_complete$assessment_center),ref = "11001")+alcohol+prs_scaled:birth.x+prs_scaled:HRT.ever+prs_scaled:birth.y+prs_scaled:factor(oc.cate3)+prs_scaled:age.menopause.scale+prs_scaled:age.menarche.scale+prs_scaled:BMI.scale+prs_scaled:agegroups+prs_scaled:alcohol+prs_scaled:height.scale+prs_scaled:n.children.scale+prs_scaled:age.firstbirth.group, data=dat_test_complete,family = binomial(), model = FALSE, x = FALSE, y = FALSE)
+summary(fit.int.all3)
+
+
+```
+
+
+## Retrospective Model on Case-Control Samples
+```{r, echo=FALSE, results='hide'}
+prs_e_function_gr <- function(data=dat0,
+                              formula=D ~prs+envir1 +envir2+factor(s1)+s2+envir1:prs+envir2:prs+factor(s1):prs+s2:prs, #Make sure that Disease is coded as 1 and control is coded as 0.
+                              formula_prs=prs~factor(s1)+s2,
+                              facVar=c("s1"), #The factor variable for sigma in constructing PRS, can be any factor variable with different levels as user defined. Only accept one variable input or NULL.
+                              initial_empirical=T, #Use logistic regression to assign initial value for optim() for MLE and linear regression on the control samples for the stratification variables S.
+                              initial_eta_sigma=c(1,0.4,0.8,0.9,0.25,0.5,1), #The initial value for the stratification variables S. If initial_empirical = T, then this condition will be ignored.
+                              numDeriv=F, #Whether to use analytical score function for MLE or numerical gradient values, note that the two results are similar but analytical is faster
+                              side0=2){ #this is the wald test side, default is 2-sided test
+  data=data.frame(data)
+  options(na.action="na.pass")
+  data_input=model.matrix(formula,data=data)
+  s.var=model.matrix(formula_prs,data=data)
+  tmp=cbind(data_input,s.var)
+  id=which(complete.cases(tmp))
+  data_input=data_input[id,]
+  data=data[id,]
+  s.var=s.var[id,]
+  cat(paste("After removing missing values, the number of observations is",dim(data_input)[1],"\n"))
+  data_input2=cbind(data_input,data)
+  data_input2 <- data_input2[, !duplicated(colnames(data_input2))]
+  
+  
+  
+  
+  prs.var=as.character(formula_prs[[2]])
+  prs=as.vector(data[,which(colnames(data)==prs.var)])
+  disease.name=as.character(formula[[2]]) #all.vars(formula)[1]
+  
+  fit <- glm(formula, data=data,family = binomial(), model = FALSE, x = FALSE, y = FALSE)
+  res_glm=summary(fit)$coef
+  
+  
+  if(is.null(facVar)==TRUE){
+    n_strat=dim(s.var)[2]
+    n_sigma=1
+    X.strata=s.var
+    sigma.strata=rep(1,dim(X.strata)[1])
+    dim(sigma.strata) <- c(length(sigma.strata), 1)
+    
+  } else {
+    n_strat=dim(s.var)[2]
+    X.strata=s.var
+    sigma.strata=model.matrix( ~ data[,facVar]-1)
+    n_sigma=dim(sigma.strata)[2]
+  } 
+  
+  
+  
+  if(initial_empirical==TRUE){
+    prs_control=prs[which(data[,which(colnames(data)==disease.name)]==0)]
+    strata_control=data.frame(X.strata[which(data[,which(colnames(data)==disease.name)]==0),])
+    data_control=cbind(prs_control,strata_control)
+    ff=as.formula(paste0("prs_control","~ ", paste(c(1,colnames(strata_control)[-1]), collapse=" + ")))
+    
+    fit2=lm(ff,data=data.frame(data_control))
+    param0=c(fit$coefficients,fit2$coefficients,rep(sd(fit2$residuals),n_sigma))
+    
+  } else {
+    param0=c(fit$coefficients,initial_eta_sigma)
+  }
+  
+  names(param0)=c(names(fit$coefficients),paste0("eta_",colnames(X.strata)),paste0("sigma_strata",colnames(sigma.strata)))
+  nbeta <- length(names(fit$coefficients))-1
+  
+  
+  Z=data_input[,-1]
+  D=data[,disease.name]
+  X.strata=as.matrix(X.strata)
+  
+  
+  
+  
+  loglilke_strat <- function(param){
+    
+    k=param[1]
+    beta=param[2:(nbeta+1)]
+    names(beta)=names(fit$coefficients)[-1]
+    eta=param[c((length(names(fit$coefficients))+1):(length(names(fit$coefficients))+n_strat))]
+    sigma=param[c((length(names(fit$coefficients))+n_strat+1):(length(names(fit$coefficients))+n_strat+n_sigma))]
+    dim(eta) <- c(length(eta), 1)
+    dim(sigma) <- c(length(sigma), 1)
+    tmp.eta <- as.numeric(as.vector(X.strata %*% eta))
+    tmp.sd <- as.numeric(as.vector(sigma.strata %*% sigma))
+    
+    name_envir_int=colnames(data_input)[c(grep(":",colnames(data_input)))]
+    name_rm1=paste0(prs.var,":")
+    name_rm2=paste0(":",prs.var)
+    name_envir_int=gsub(name_rm1,'',name_envir_int)
+    name_envir_int=gsub(name_rm2,'',name_envir_int)
+    
+    envir_s_int=data_input2[,name_envir_int]
+    envir_s_int=as.matrix(envir_s_int)
+    beta_int=beta[grep(":",names(beta))]
+    dim(beta_int) <- c(length(beta_int), 1)
+    beta_p=beta[match(prs.var,names(beta))]
+    envir_s=data_input[,-c(1,match(prs.var,colnames(data_input)),grep(":",colnames(data_input)))]
+    beta_e_s = beta[-c(match(prs.var,names(beta)),grep(":",names(beta)))]
+    dim(beta_e_s) <- c(length(beta_e_s), 1)
+    
+    
+    f=dnorm(prs, mean =  tmp.eta, sd =  abs(tmp.sd), log = F)
+    dim(beta) <- c(length(beta), 1)
+    vec <- as.numeric(as.vector(exp(D * (k + Z %*% beta )) * f))
+    denom_sum=1+exp(tmp.sd^2*(beta_p+ envir_s_int %*% beta_int)^2/2 +tmp.eta*(beta_p+ envir_s_int %*% beta_int) + k + envir_s %*% beta_e_s)
+    denom_sum=as.vector(denom_sum)
+    vec <- vec/denom_sum
+    ret <- sum(log(vec))
+    
+    return(ret)
+  }
+  
+  
+  fn_gr <- function(param){
+    
+    k=param[1]
+    beta=param[2:(nbeta+1)]
+    names(beta)=names(fit$coefficients)[-1]
+    eta=param[c((length(names(fit$coefficients))+1):(length(names(fit$coefficients))+n_strat))]
+    sigma=param[c((length(names(fit$coefficients))+n_strat+1):(length(names(fit$coefficients))+n_strat+n_sigma))]
+    dim(eta) <- c(length(eta), 1)
+    dim(sigma) <- c(length(sigma), 1)
+    tmp.eta <- as.numeric(as.vector(X.strata %*% eta))
+    tmp.sd <- as.numeric(as.vector(sigma.strata %*% sigma))
+    
+    name_envir_int=colnames(data_input)[c(grep(":",colnames(data_input)))]
+    name_rm1=paste0(prs.var,":")
+    name_rm2=paste0(":",prs.var)
+    name_envir_int=gsub(name_rm1,'',name_envir_int)
+    name_envir_int=gsub(name_rm2,'',name_envir_int)
+    
+    envir_s_int=data_input2[,name_envir_int]
+    envir_s_int=as.matrix(envir_s_int)
+    beta_int=beta[grep(":",names(beta))]
+    dim(beta_int) <- c(length(beta_int), 1)
+    beta_p=beta[match(prs.var,names(beta))]
+    envir_s=data_input[,-c(1,match(prs.var,colnames(data_input)),grep(":",colnames(data_input)))]
+    beta_e_s = beta[-c(match(prs.var,names(beta)),grep(":",names(beta)))]
+    dim(beta_e_s) <- c(length(beta_e_s), 1)
+    
+    
+    f=dnorm(prs, mean =  tmp.eta, sd =  abs(tmp.sd), log = F)
+    dim(beta) <- c(length(beta), 1)
+    vec <- as.numeric(as.vector(exp(D * (k + Z %*% beta )) * f))
+    denom_sum=1+exp(tmp.sd^2*(beta_p+ envir_s_int %*% beta_int)^2/2 +tmp.eta*(beta_p+ envir_s_int %*% beta_int) + k + envir_s %*% beta_e_s)
+    denom_sum=as.vector(denom_sum)
+    
+    
+    k.tmp=sum(D-(1-1/denom_sum))
+    beta_p.tmp=sum(D*prs - (1-1/denom_sum)*(tmp.sd^2*as.vector(beta_p+ envir_s_int %*% beta_int)+tmp.eta))
+    beta_e_s.tmp=apply(as.matrix(D*envir_s-(1-1/denom_sum)*envir_s),2,sum)
+    beta_int.tmp=apply(D*envir_s_int*prs-(1-1/denom_sum)*(tmp.sd^2*as.vector(beta_p+ envir_s_int %*% beta_int)*envir_s_int+tmp.eta*envir_s_int),2,sum)
+    
+    
+    eta.tmp=as.vector(1/tmp.sd^2*(prs-tmp.eta)) %*% X.strata- as.vector(as.vector(1-1/denom_sum)*as.vector(beta_p+ envir_s_int %*% beta_int)) %*% X.strata
+    sigma.tmp=as.vector(-1/tmp.sd+(prs-tmp.eta)^2/tmp.sd^3-(1-1/denom_sum)*tmp.sd*as.vector(beta_p+ envir_s_int %*% beta_int)^2) %*% sigma.strata
+    
+    
+    beta.tmp=c(beta_p.tmp,beta_e_s.tmp,beta_int.tmp)
+    names(beta.tmp)=c(prs.var,names(fit$coefficients)[-c(1,match(prs.var,names(fit$coefficients)))])
+    beta.tmp=beta.tmp[match(names(fit$coefficients)[-1],names(beta.tmp))]
+    grr <- c(k.tmp,beta.tmp,eta.tmp,sigma.tmp)
+    names(grr)=names(param)
+    return(grr)
+  }
+  
+  
+  control <- list(fnscale = -1,trace = TRUE,
+                  REPORT = 50,maxit=20000)
+  
+  
+  if(numDeriv==T){
+    ret <- optim(param0, loglilke_strat, method="BFGS",
+                 control = control, hessian = TRUE)
+    #ret <- optim(ret$par, loglilke_strat, method="SANN",
+    #              control = control, hessian = TRUE)
+    # ret <- optim(ret$par, loglilke_strat,method="BFGS",
+    #              control = control, hessian = TRUE)
+    
+  } else {
+    ret <- optim(param0, loglilke_strat,gr=fn_gr, method="BFGS",
+                 control = control, hessian = TRUE)
+    # ret <- optim(ret$par, loglilke_strat,gr=fn_gr, method="BFGS",
+    #              control = control, hessian = TRUE)
+    
+  }
+  
+  
+  cov <- chol(-ret$hessian)
+  cov <- chol2inv(cov)
+  cnames <- names(param0)
+  colnames(cov) <- cnames
+  rownames(cov) <- cnames
+  cov1=cov
+  
+  
+  
+  
+  
+  
+  #Summarize the results
+  res.sum=function (parms=ret$par, cov=cov1, sided) 
+  {
+    if (sided != 1) 
+      sided <- 2
+    cols <- c("Estimate", "Std.Error", "Z.value", "Pvalue")
+    n <- length(parms)
+    ret <- matrix(data = NA, nrow = n, ncol = 4)
+    pnames <- names(parms)
+    rownames(ret) <- pnames
+    colnames(ret) <- cols
+    ret[, 1] <- parms
+    cols <- colnames(cov)
+    cov <- sqrt(diag(cov))
+    names(cov) <- cols
+    if (is.null(pnames)) 
+      pnames <- 1:n
+    cov <- cov[pnames]
+    ret[, 2] <- cov
+    ret[, 3] <- parms/cov
+    ret[, 4] <- sided * pnorm(abs(ret[, 3]), lower.tail = FALSE)
+    ret
+  }
+  
+  res_normal=res.sum(sided = side0)
+  res=list(res_glm=res_glm,res_normal=res_normal)
+  model <- list(data = data,formula=formula,formula_prs=formula_prs,facVar=facVar)
+  res$model.info <- model
+  return(res)
+  
+}
+```
+
+
+```{r}
+
+#Now let's select the control samples for the case/control study
+table(dat_test_complete$breast_cancer)
+
+#select 2024 controls who did not have breast cancer
+control=dat_test_complete[which(dat_test_complete$breast_cancer==0),]
+set.seed(10252022)
+control=control[sample(1:dim(control)[1],size=2024,replace = F),]
+dat_test_casecontrol=rbind(control,dat_test_complete[which(dat_test_complete$breast_cancer==1),])
+dat_test_casecontrol$prs_scaled=scale(dat_test_casecontrol$prs_bc,center = T,scale = T)
+dat_test_casecontrol$age.menarche.scale=scale(dat_test_casecontrol$age.menarche,center = T,scale=T)
+dat_test_casecontrol$age.menopause.scale=scale(dat_test_casecontrol$age.menopause,center = T,scale=T)
+dat_test_casecontrol$n.children.scale=scale(dat_test_casecontrol$n.children.win,center=T,scale = T)
+dat_test_casecontrol$height.scale=scale(dat_test_casecontrol$height,center=T,scale = T)
+dat_test_casecontrol$BMI.scale=scale(dat_test_casecontrol$BMI,center=T,scale = T)
+dat_test_casecontrol$length.oc.scale=scale(dat_test_casecontrol$length.oc,center=T,scale = T)
+dat_test_casecontrol$birth.x=scale(dat_test_casecontrol$birth.x,center=T,scale=T)
+dat_test_casecontrol$birth.y=scale(dat_test_casecontrol$birth.y,center=T,scale=T)
+
+dat_test_casecontrol.coordinate=dat_test_casecontrol[complete.cases(dat_test_casecontrol),]
+table(dat_test_casecontrol.coordinate$breast_cancer)
+```
+
+
+```{r}
+dat_test_casecontrol.coordinate$assessment_center=factor(dat_test_casecontrol.coordinate$assessment_center)
+dat_test_casecontrol.coordinate$assessment_center=relevel(dat_test_casecontrol.coordinate$assessment_center,ref = "11001")
+fit_normal.coordinate1<-prs_e_function_gr(data=dat_test_casecontrol.coordinate,
+                                          formula = breast_cancer~prs_scaled+PC1+PC2+PC3+PC4+PC5+PC6+PC7+PC8+PC9+PC10+HRT.ever+agegroups+n.children.scale+birth.x+birth.y+age.firstbirth.group+height.scale+age.menarche.scale+age.menopause.scale+length.oc.scale+BMI.scale+assessment_center+alcohol+prs_scaled:HRT.ever+prs_scaled:birth.x+prs_scaled:birth.y+prs_scaled:length.oc.scale+prs_scaled:age.menopause.scale+prs_scaled:age.menarche.scale+prs_scaled:BMI.scale+prs_scaled:agegroups+prs_scaled:alcohol+prs_scaled:height.scale+prs_scaled:n.children.scale+prs_scaled:age.firstbirth.group,
+                                          formula_prs = prs_scaled ~ PC1+PC2+PC3+PC4+PC5+PC6+PC7+PC8+PC9+PC10+birth.x+birth.y,
+                                          numDeriv = F,
+                                          facVar="assessment_center")
+
+fit_normal.coordinate2<-prs_e_function_gr(data=dat_test_casecontrol.coordinate,
+                                          formula = breast_cancer~prs_scaled+PC1+PC2+PC3+PC4+PC5+PC6+PC7+PC8+PC9+PC10+HRT.ever+agegroups+n.children.scale+birth.x+birth.y+age.firstbirth.group+height.scale+age.menarche.scale+age.menopause.scale+factor(oc.cate2)+BMI.scale+assessment_center+alcohol+prs_scaled:HRT.ever+prs_scaled:birth.x+prs_scaled:birth.y+prs_scaled:factor(oc.cate2)+prs_scaled:age.menopause.scale+prs_scaled:age.menarche.scale+prs_scaled:BMI.scale+prs_scaled:agegroups+prs_scaled:alcohol+prs_scaled:height.scale+prs_scaled:n.children.scale+prs_scaled:age.firstbirth.group,
+                                          formula_prs = prs_scaled ~ PC1+PC2+PC3+PC4+PC5+PC6+PC7+PC8+PC9+PC10+birth.x+birth.y,
+                                          numDeriv = F,
+                                          facVar="assessment_center")
+
+fit_normal.coordinate3<-prs_e_function_gr(data=dat_test_casecontrol.coordinate,
+                                          formula = breast_cancer~prs_scaled+PC1+PC2+PC3+PC4+PC5+PC6+PC7+PC8+PC9+PC10+HRT.ever+agegroups+n.children.scale+birth.x+birth.y+age.firstbirth.group+height.scale+age.menarche.scale+age.menopause.scale+factor(oc.cate3)+BMI.scale+assessment_center+alcohol+prs_scaled:HRT.ever+prs_scaled:birth.x+prs_scaled:birth.y+prs_scaled:factor(oc.cate3)+prs_scaled:age.menopause.scale+prs_scaled:age.menarche.scale+prs_scaled:BMI.scale+prs_scaled:agegroups+prs_scaled:alcohol+prs_scaled:height.scale+prs_scaled:n.children.scale+prs_scaled:age.firstbirth.group,
+                                          formula_prs = prs_scaled ~ PC1+PC2+PC3+PC4+PC5+PC6+PC7+PC8+PC9+PC10+birth.x+birth.y,
+                                          numDeriv = F,
+                                          facVar="assessment_center")
+#Print the results, our method
+fit_normal.coordinate1$res_normal
+
+
+fit_normal.coordinate2$res_normal
+
+
+fit_normal.coordinate3$res_normal
+
+
+#Logistic regression on the case-control samples
+fit_normal.coordinate1$res_glm
+
+
+fit_normal.coordinate2$res_glm
+
+
+fit_normal.coordinate3$res_glm
+
+```
+
+## Case-only method for Post-Menopause
+```{r}
+
+summary.caseonly=function (parms, sd, sided = 2) 
+{
+  if (sided != 1) 
+    sided <- 2
+  cols <- c("Estimate", "Std.Error", "Z.value", "Pvalue")
+  n <- length(parms)
+  ret <- matrix(data = NA, nrow = n, ncol = 4)
+  pnames <- c("prs",paste0("prs:",names(parms)[-1]))
+  rownames(ret) <- pnames
+  colnames(ret) <- cols
+  ret[, 1] <- parms
+  if (is.null(pnames)) 
+    pnames <- 1:n
+  cov <- sd
+  ret[, 2] <- cov
+  ret[, 3] <- parms/cov
+  ret[, 4] <- sided * pnorm(abs(ret[, 3]), lower.tail = FALSE)
+  ret
+}
+dat_caseonly=dat_test_casecontrol.coordinate[which(dat_test_casecontrol.coordinate$breast_cancer==1),]
+fit_caseonly <- lm(prs_scaled~PC1+PC2+PC3+PC4+PC5+PC6+PC7+PC8+PC9+PC10+HRT.ever+agegroups+n.children.scale+birth.x+birth.y+age.firstbirth.group+height.scale+age.menarche.scale+age.menopause.scale+length.oc.scale+BMI.scale+assessment_center+alcohol,data=dat_caseonly)
+beta_int=fit_caseonly$coefficients[-1]/(sd(fit_caseonly$residuals))^2
+sd_int=summary(fit_caseonly)$coef[-1,2]/(sd(fit_caseonly$residuals))^2
+mean_prs=mean(dat_test_complete$prs_scaled)
+beta_prs=(fit_caseonly$coefficients[1]-mean_prs)/(sd(fit_caseonly$residuals))^2
+sd_prs= sqrt(( (summary(fit_caseonly)$coef[1,2])^2 +(sd(fit_caseonly$residuals))^2/dim(dat_test_complete)[1]) / (sd(fit_caseonly$residuals))^4)
+res_caseonly_post=summary.caseonly(parms = c(beta_prs,beta_int),sd=c(sd_prs,sd_int))
+print(res_caseonly_post)
+
+fit_caseonly <- lm(prs_scaled~HRT.ever+agegroups+n.children.scale+birth.x+birth.y+age.firstbirth.group+height.scale+age.menarche.scale+age.menopause.scale+length.oc.scale+BMI.scale+alcohol,data=dat_caseonly)
+beta_int=fit_caseonly$coefficients[-1]/(sd(fit_caseonly$residuals))^2
+sd_int=summary(fit_caseonly)$coef[-1,2]/(sd(fit_caseonly$residuals))^2
+
+beta_prs=(fit_caseonly$coefficients[1]-mean_prs)/(sd(fit_caseonly$residuals))^2
+sd_prs= sqrt(( (summary(fit_caseonly)$coef[1,2])^2 +(sd(fit_caseonly$residuals))^2/dim(dat_test_complete)[1]) / (sd(fit_caseonly$residuals))^4)
+res_caseonly=summary.caseonly(parms = c(beta_prs,beta_int),sd=c(sd_prs,sd_int))
+print(res_caseonly)
+
+
+
+```
+
+
+# Pre-Menopause Cohort
+For pre-menopause cohort, we also found PRS by length.oc use interaction term significant in association with breast cancer. 
+```{r}
+dat0_premeno_bc=dat0[which(dat0$menopause=="No" ),] 
+dat0_premeno_bc$prs_scaled=scale(dat0_premeno_bc$prs_bc,center = T,scale = T)
+fit <- glm(breast_cancer~prs_scaled+PC1+PC2+PC3+PC4+PC5+PC6+PC7+PC8+PC9+PC10, data=dat0_premeno_bc,family = binomial(), model = FALSE, x = FALSE, y = FALSE)
+summary(fit)
+exp(0.4890811)
+
+colnames(dat0_premeno_bc)[7]="age.menarche"
+dat0_premeno_bc$n.children=as.numeric(as.character(dat0_premeno_bc$n.children))
+dat0_premeno_bc$age.menopause=as.numeric(as.character(dat0_premeno_bc$age.menopause))
+dat0_premeno_bc$n.children[which(dat0_premeno_bc$n.children=="-3")]=NA
+#winsorization
+dat0_premeno_bc$n.children.win=dat0_premeno_bc$n.children
+dat0_premeno_bc$n.children.win[which(dat0_premeno_bc$n.children.win>=5)]=5
+dat0_premeno_bc$alcohol=NA
+dat0_premeno_bc$alcohol[which(dat0_premeno_bc$AlcoholFreq=="Never" | dat0_premeno_bc$AlcoholFreq== "Special occasions only")]=0
+dat0_premeno_bc$alcohol[which(dat0_premeno_bc$AlcoholFreq=="Daily or almost daily" | dat0_premeno_bc$AlcoholFreq== "Three or four times a week" |
+                                dat0_premeno_bc$AlcoholFreq== "Once or twice a week" | dat0_premeno_bc$AlcoholFreq=="One to three times a month"     )]=1
+dat0_premeno_bc$age.firstbirth=as.numeric(as.character(dat0_premeno_bc$age.firstbirth))
+dat0_premeno_bc$age.firstbirth[which(dat0_premeno_bc$age.firstbirth== -3 | dat0_premeno_bc$age.firstbirth== -4)]=NA
+dat0_premeno_bc$age.firstbirth[which(dat0_premeno_bc$n.children==0)]=999
+dat0_premeno_bc$age.firstbirth.group=NA
+dat0_premeno_bc$age.firstbirth.group<-cut(dat0_premeno_bc$age.firstbirth, breaks=c( 0, 25,35,80,1000), right = FALSE)
+dat0_premeno_bc$age.menarche[which(dat0_premeno_bc$age.menarche<0)]=NA
+dat0_premeno_bc$agegroups<-cut(dat0_premeno_bc$age, breaks=c( 40, 45,50,80), right = FALSE)
+
+dat0_premeno_bc$birth.x[which(dat0_premeno_bc$birth.x<0)]=NA
+dat0_premeno_bc$birth.y[which(dat0_premeno_bc$birth.y<0)]=NA
+
+dat0_premeno_bc$oc.cate2=NA
+dat0_premeno_bc$oc.cate2[which(dat0_premeno_bc$oral.contraceptive.ever==0)]=0 
+dat0_premeno_bc$oc.cate2[which(dat0_premeno_bc$oral.contraceptive.ever==1 & dat0_premeno_bc$length.oc<10)]=1  
+dat0_premeno_bc$oc.cate2[which( dat0_premeno_bc$length.oc>=10)]=2 
+
+
+#more specified interval
+dat0_premeno_bc$oc.cate3=NA
+dat0_premeno_bc$oc.cate3[which(dat0_premeno_bc$oral.contraceptive.ever==0)]=0 
+dat0_premeno_bc$oc.cate3[which(dat0_premeno_bc$oral.contraceptive.ever==1 & dat0_premeno_bc$length.oc<5)]=1  
+dat0_premeno_bc$oc.cate3[which( dat0_premeno_bc$length.oc>=5 & dat0_premeno_bc$length.oc < 10)]=2 
+dat0_premeno_bc$oc.cate3[which( dat0_premeno_bc$length.oc>=10 & dat0_premeno_bc$length.oc < 15)]=3
+dat0_premeno_bc$oc.cate3[which( dat0_premeno_bc$length.oc>=15 )]=4
+
+```
+
+
+
+```{r}
+dat_test=dat0_premeno_bc[,c("IID","prs_bc","age","age.menarche","BMI","height","n.children.win","age.firstbirth",
+                            "breast_cancer","breast_cancer_incident","length.oc","oral.contraceptive.ever",
+                            "assessment_center","agegroups", 
+                            "oc.cate","oc.cate2","oc.cate3" ,"alcohol","age.firstbirth.group","PC1","PC2","PC3","PC4","PC5","PC6","PC7","PC8","PC9","PC10")]
+
+dat_test=dat_test[complete.cases(dat_test),]
+table(dat_test$breast_cancer)
+table(dat_test$breast_cancer_incident)
+dim(dat_test) 
+dat_test$prs_scaled=scale(dat_test$prs_bc,center = T,scale = T)
+dat_test$age.scale=scale(dat_test$age,center = T,scale=T)
+dat_test$age.menarche.scale=scale(dat_test$age.menarche,center = T,scale=T)
+dat_test$n.children.scale=scale(dat_test$n.children.win,center=T,scale = T)
+dat_test$height.scale=scale(dat_test$height,center=T,scale = T)
+dat_test$BMI.scale=scale(dat_test$BMI,center=T,scale = T)
+dat_test$length.oc.scale=scale(dat_test$length.oc,center=T,scale = T)
+dat_location=dat0_premeno_bc[,c("IID","birth.x","birth.y")]
+dat_test=merge(dat_test,dat_location,by="IID")
+dat_test$birth.x=scale(dat_test$birth.x,center=T,scale=T)
+dat_test$birth.y=scale(dat_test$birth.y,center=T,scale=T)
+dat_test_complete=dat_test[complete.cases(dat_test),]
+table(dat_test_complete$breast_cancer)
+
+fit.int.all.premeno <- glm(breast_cancer~prs_scaled+PC1+PC2+PC3+PC4+PC5+PC6+PC7+PC8+PC9+PC10+agegroups+n.children.scale+birth.x+birth.y+age.firstbirth.group+height.scale+age.menarche.scale+length.oc.scale+BMI.scale+relevel(factor(dat_test_complete$assessment_center),ref = "11001")+alcohol+prs_scaled:birth.x+prs_scaled:birth.y+prs_scaled:length.oc.scale+prs_scaled:age.menarche.scale+prs_scaled:BMI.scale+prs_scaled:agegroups+prs_scaled:alcohol+prs_scaled:height.scale+prs_scaled:n.children.scale+prs_scaled:age.firstbirth.group, data=dat_test_complete,family = binomial(), model = FALSE, x = FALSE, y = FALSE)
+summary(fit.int.all.premeno)
+
+fit.int.all2.premeno <- glm(breast_cancer~prs_scaled+PC1+PC2+PC3+PC4+PC5+PC6+PC7+PC8+PC9+PC10+agegroups+n.children.scale+birth.x+birth.y+age.firstbirth.group+height.scale+age.menarche.scale+factor(oc.cate2)+BMI.scale+relevel(factor(dat_test_complete$assessment_center),ref = "11001")+alcohol+prs_scaled:birth.x+prs_scaled:birth.y+prs_scaled:factor(oc.cate2)+prs_scaled:age.menarche.scale+prs_scaled:BMI.scale+prs_scaled:agegroups+prs_scaled:alcohol+prs_scaled:height.scale+prs_scaled:n.children.scale+prs_scaled:age.firstbirth.group, data=dat_test_complete,family = binomial(), model = FALSE, x = FALSE, y = FALSE)
+summary(fit.int.all2.premeno)
+
+
+fit.int.all3.premeno <- glm(breast_cancer~prs_scaled+PC1+PC2+PC3+PC4+PC5+PC6+PC7+PC8+PC9+PC10+agegroups+n.children.scale+birth.x+birth.y+age.firstbirth.group+height.scale+age.menarche.scale+factor(oc.cate3)+BMI.scale+relevel(factor(dat_test_complete$assessment_center),ref = "11001")+alcohol+prs_scaled:birth.x+prs_scaled:birth.y+prs_scaled:factor(oc.cate3)+prs_scaled:age.menarche.scale+prs_scaled:BMI.scale+prs_scaled:agegroups+prs_scaled:alcohol+prs_scaled:height.scale+prs_scaled:n.children.scale+prs_scaled:age.firstbirth.group, data=dat_test_complete,family = binomial(), model = FALSE, x = FALSE, y = FALSE)
+summary(fit.int.all3.premeno)
+
+
+
+#Now let's select the control samples for the case/control study
+table(dat_test_complete$breast_cancer)
+#select 704 controls who did not have breast cancer
+control=dat_test_complete[which(dat_test_complete$breast_cancer==0),]
+set.seed(10252022)
+control=control[sample(1:dim(control)[1],size=704,replace = F),]
+dat_test_casecontrol=rbind(control,dat_test_complete[which(dat_test_complete$breast_cancer==1),])
+dat_test_casecontrol$prs_scaled=scale(dat_test_casecontrol$prs_bc,center = T,scale = T)
+dat_test_casecontrol$age.menarche.scale=scale(dat_test_casecontrol$age.menarche,center = T,scale=T)
+dat_test_casecontrol$n.children.scale=scale(dat_test_casecontrol$n.children.win,center=T,scale = T)
+dat_test_casecontrol$height.scale=scale(dat_test_casecontrol$height,center=T,scale = T)
+dat_test_casecontrol$BMI.scale=scale(dat_test_casecontrol$BMI,center=T,scale = T)
+dat_test_casecontrol$length.oc.scale=scale(dat_test_casecontrol$length.oc,center=T,scale = T)
+dat_test_casecontrol$birth.x=scale(dat_test_casecontrol$birth.x,center=T,scale=T)
+dat_test_casecontrol$birth.y=scale(dat_test_casecontrol$birth.y,center=T,scale=T)
+dat_test_casecontrol.coordinate=dat_test_casecontrol[complete.cases(dat_test_casecontrol),]
+table(dat_test_casecontrol.coordinate$breast_cancer)
+dat_test_casecontrol.coordinate$assessment_center=factor(dat_test_casecontrol.coordinate$assessment_center)
+dat_test_casecontrol.coordinate$assessment_center=relevel(dat_test_casecontrol.coordinate$assessment_center,ref = "11001")
+fit_normal.coordinate1.premeno<-prs_e_function_gr(data=dat_test_casecontrol.coordinate,
+                                                  formula = breast_cancer~prs_scaled+PC1+PC2+PC3+PC4+PC5+PC6+PC7+PC8+PC9+PC10+agegroups+n.children.scale+birth.x+birth.y+age.firstbirth.group+height.scale+age.menarche.scale+length.oc.scale+BMI.scale+assessment_center+alcohol+prs_scaled:birth.x+prs_scaled:birth.y+prs_scaled:length.oc.scale+prs_scaled:age.menarche.scale+prs_scaled:BMI.scale+prs_scaled:agegroups+prs_scaled:alcohol+prs_scaled:height.scale+prs_scaled:n.children.scale+prs_scaled:age.firstbirth.group,
+                                                  formula_prs = prs_scaled ~ PC1+PC2+PC3+PC4+PC5+PC6+PC7+PC8+PC9+PC10+birth.x+birth.y,
+                                                  numDeriv = F,
+                                                  facVar="assessment_center")
+
+fit_normal.coordinate2.premeno<-prs_e_function_gr(data=dat_test_casecontrol.coordinate,
+                                                  formula = breast_cancer~prs_scaled+PC1+PC2+PC3+PC4+PC5+PC6+PC7+PC8+PC9+PC10+agegroups+n.children.scale+birth.x+birth.y+age.firstbirth.group+height.scale+age.menarche.scale+factor(oc.cate2)+BMI.scale+assessment_center+alcohol+prs_scaled:birth.x+prs_scaled:birth.y+prs_scaled:factor(oc.cate2)+prs_scaled:age.menarche.scale+prs_scaled:BMI.scale+prs_scaled:agegroups+prs_scaled:alcohol+prs_scaled:height.scale+prs_scaled:n.children.scale+prs_scaled:age.firstbirth.group,
+                                                  formula_prs = prs_scaled ~ PC1+PC2+PC3+PC4+PC5+PC6+PC7+PC8+PC9+PC10+birth.x+birth.y,
+                                                  numDeriv = F,
+                                                  facVar="assessment_center")
+
+fit_normal.coordinate3.premeno<-prs_e_function_gr(data=dat_test_casecontrol.coordinate,
+                                                  formula = breast_cancer~prs_scaled+PC1+PC2+PC3+PC4+PC5+PC6+PC7+PC8+PC9+PC10+agegroups+n.children.scale+birth.x+birth.y+age.firstbirth.group+height.scale+age.menarche.scale+factor(oc.cate3)+BMI.scale+assessment_center+alcohol+prs_scaled:birth.x+prs_scaled:birth.y+prs_scaled:factor(oc.cate3)+prs_scaled:age.menarche.scale+prs_scaled:BMI.scale+prs_scaled:agegroups+prs_scaled:alcohol+prs_scaled:height.scale+prs_scaled:n.children.scale+prs_scaled:age.firstbirth.group,
+                                                  formula_prs = prs_scaled ~ PC1+PC2+PC3+PC4+PC5+PC6+PC7+PC8+PC9+PC10+birth.x+birth.y,
+                                                  numDeriv = F,
+                                                  facVar="assessment_center")
+
+#Print the results, our method
+fit_normal.coordinate1.premeno$res_normal
+
+
+fit_normal.coordinate2.premeno$res_normal
+
+
+fit_normal.coordinate3.premeno$res_normal
+
+#Logistic regression on the case-control samples
+fit_normal.coordinate1.premeno$res_glm
+
+
+fit_normal.coordinate2.premeno$res_glm
+
+
+fit_normal.coordinate3.premeno$res_glm
+
+```
+
+
+## Case-only method for Pre-Menopause
+```{r}
+
+summary.caseonly=function (parms, sd, sided = 2) 
+{
+  if (sided != 1) 
+    sided <- 2
+  cols <- c("Estimate", "Std.Error", "Z.value", "Pvalue")
+  n <- length(parms)
+  ret <- matrix(data = NA, nrow = n, ncol = 4)
+  pnames <- c("prs",paste0("prs:",names(parms)[-1]))
+  rownames(ret) <- pnames
+  colnames(ret) <- cols
+  ret[, 1] <- parms
+  if (is.null(pnames)) 
+    pnames <- 1:n
+  cov <- sd
+  ret[, 2] <- cov
+  ret[, 3] <- parms/cov
+  ret[, 4] <- sided * pnorm(abs(ret[, 3]), lower.tail = FALSE)
+  ret
+}
+dat_caseonly=dat_test_casecontrol.coordinate[which(dat_test_casecontrol.coordinate$breast_cancer==1),]
+fit_caseonly <- lm(prs_scaled~PC1+PC2+PC3+PC4+PC5+PC6+PC7+PC8+PC9+PC10+agegroups+n.children.scale+birth.x+birth.y+age.firstbirth.group+height.scale+age.menarche.scale+length.oc.scale+BMI.scale+assessment_center+alcohol,data=dat_caseonly)
+beta_int=fit_caseonly$coefficients[-1]/(sd(fit_caseonly$residuals))^2
+sd_int=summary(fit_caseonly)$coef[-1,2]/(sd(fit_caseonly$residuals))^2
+mean_prs=mean(dat_test_complete$prs_scaled)
+beta_prs=(fit_caseonly$coefficients[1]-mean_prs)/(sd(fit_caseonly$residuals))^2
+sd_prs= sqrt(( (summary(fit_caseonly)$coef[1,2])^2 +(sd(fit_caseonly$residuals))^2/dim(dat_test_complete)[1]) / (sd(fit_caseonly$residuals))^4)
+res_caseonly_pre=summary.caseonly(parms = c(beta_prs,beta_int),sd=c(sd_prs,sd_int))
+print(res_caseonly_pre)
+
+fit_caseonly <- lm(prs_scaled~agegroups+n.children.scale+birth.x+birth.y+age.firstbirth.group+height.scale+age.menarche.scale+length.oc.scale+BMI.scale+alcohol,data=dat_caseonly)
+beta_int=fit_caseonly$coefficients[-1]/(sd(fit_caseonly$residuals))^2
+sd_int=summary(fit_caseonly)$coef[-1,2]/(sd(fit_caseonly$residuals))^2
+
+beta_prs=(fit_caseonly$coefficients[1]-mean_prs)/(sd(fit_caseonly$residuals))^2
+sd_prs= sqrt(( (summary(fit_caseonly)$coef[1,2])^2 +(sd(fit_caseonly$residuals))^2/dim(dat_test_complete)[1]) / (sd(fit_caseonly$residuals))^4)
+res_caseonly=summary.caseonly(parms = c(beta_prs,beta_int),sd=c(sd_prs,sd_int))
+print(res_caseonly)
+
+
+
+```
+
+
+\pagebreak
+
+# Results Summary
+
+Let's summarize the results:
+```{r}
+
+data1=array(0,c(4,4))
+data1[1,]=fit_normal.coordinate1$res_normal[53,]
+data1[2,]=summary(fit.int.all)$coef[53,]
+data1[3,]=fit_normal.coordinate1$res_glm[53,]
+data1[4,]=res_caseonly_post[25,]
+rownames(data1)=c("retro_normal","logistic_regression_cohort","logistic_regression_casecontrol","case-only")
+colnames(data1)=colnames(fit_normal.coordinate1$res_normal)
+
+data2=array(0,c(4,4))
+data2[1,]=fit_normal.coordinate1$res_normal[51,]
+data2[2,]=summary(fit.int.all)$coef[51,]
+data2[3,]=fit_normal.coordinate1$res_glm[51,]
+data2[4,]=res_caseonly_post[17,]
+rownames(data2)=c("retro_normal","logistic_regression_cohort","logistic_regression_casecontrol","case-only")
+colnames(data2)=colnames(fit_normal.coordinate1$res_normal)
+
+
+data3=array(0,c(4,4))
+data3[1,]=fit_normal.coordinate1.premeno$res_normal[48,]
+data3[2,]=summary(fit.int.all.premeno)$coef[49,]
+data3[3,]=fit_normal.coordinate1.premeno$res_glm[48,]
+data3[4,]=res_caseonly_pre[22,]
+rownames(data3)=c("retro_normal","logistic_regression_cohort","logistic_regression_casecontrol","case-only")
+colnames(data3)=colnames(fit_normal.coordinate1.premeno$res_normal)
+
+```
+
+We found interesting interactions between PRS and use of oral contraceptive use (Table 1) for both pre-menopause and post-menupause women, PRS and birth location in association with breast cancer (Table 2) for post-menopause women. In addition, in the cohort logistic regression, we found significant interaction between PRS and age at first birth. 
+```{r,warning=F}
+library(knitr)
+kable(data1,caption="PRS X Years of Oral Contraceptive Pill Use - Post-Menopause Women",digits=4)
+kable(data2,caption="PRS X Birth Location (east coordinate) - Post-Menopause Women",digits=4)
+kable(data3,caption="PRS X Years of Oral Contraceptive Pill Use - Pre-Menopause Women",digits=4)
+```
+
+## Sensitivity Analysis Results for Years of OC use
+We additionally did sensitivity analysis for the years of OC use by categorizing them. We make two different categorical variables for the years of OC use by different intervals. The first test is to categorize the years of OC use to three categories: never, 0-10 years, and >10 years. The second test we categorized the length to 5 categories: never, 0-5 years, 5-10 years, 10-15 years, and >15 years. We found interesting dose-response relationship between the length of years of OC use by PRS for post-menopause women for both sensitivity analysis. We did not observe significant interaction terms for pre-menopause women, the main reason could be not enough power in the analysis as the sample size is small.
+```{r}
+
+data1=array(0,c(6,4))
+data1[1,]=fit_normal.coordinate2$res_normal[54,]
+data1[2,]=fit_normal.coordinate2$res_normal[55,]
+data1[3,]=summary(fit.int.all2)$coef[54,]
+data1[4,]=summary(fit.int.all2)$coef[55,]
+data1[5,]=fit_normal.coordinate2$res_glm[54,]
+data1[6,]=fit_normal.coordinate2$res_glm[55,]
+rownames(data1)=c("retro_normal_prs_scaled:factor(oc.cate2)1","prs_scaled:factor(oc.cate2)2","logistic_regression_cohort_prs_scaled:factor(oc.cate2)1","prs_scaled:factor(oc.cate2)2","logistic_regression_casecontrol_prs_scaled:factor(oc.cate2)1","prs_scaled:factor(oc.cate2)2")
+colnames(data1)=colnames(fit_normal.coordinate2$res_normal)
+
+data2=array(0,c(12,4))
+data2[1:4,]=fit_normal.coordinate3$res_normal[56:59,]
+data2[5:8,]=summary(fit.int.all3)$coef[56:59,]
+data2[9:12,]=fit_normal.coordinate3$res_glm[56:59,]
+rownames(data2)=c(paste0("retro_normal_prs_scaled:factor(oc.cate3)",1:4),paste0("logistic_regression_cohort_prs_scaled:factor(oc.cate3)",1:4),paste0("logistic_regression_casecontrol_prs_scaled:factor(oc.cate3)",1:4))
+colnames(data2)=colnames(fit_normal.coordinate3$res_normal)
+
+```
+
+
+```{r,warning=F}
+kable(data1,caption="Sensitivity Analysis 1: PRS X Years of Oral Contraceptive 3 Categories - Post-Menopause Women",digits=4)
+kable(data2,caption="Sensitivity Analysis 2: PRS X Years of Oral Contraceptive 5 Categories - Post-Menopause Women",digits=4)
+
+```
+
+
