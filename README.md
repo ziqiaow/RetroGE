@@ -6,10 +6,15 @@ A Retrospective Likelihood Method for Joint Modeling of Gene-Environment Interac
 * Ziqiao Wang, Wen Shi, Raymond J. Carrol, and Nilanjan Chatterjee (2023). Joint Modeling of Gene-Environment Correlations and Interactions
 using Polygenic Risk Scores in Case-Control Studies.
 
-### Installation
-Install the R code via github
+### 
+We provide an example for running RetroGE functions. 
 ```
-if(!requireNamespace("devtools", quietly = TRUE))
-    install.packages("devtools")
-devtools::install_github("ziqiaow/RetroGE") 
+
 ```
+### Results
+The complete results for the data analysis of UK Biobank is available in R markdown:
+For incident breast cancer of both postmenopausal and premenopausal women: [breast cancer](results/UKB_breastcancer.html). 
+For incident colorectal cancer: [colorectal cancer](results/report_colorectal.html). 
+
+### Questions
+Please direct any questions/suggestions to zwang389@jhu.edu or wzqjanet@gmail.com
