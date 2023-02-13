@@ -81,7 +81,7 @@ Print running time.
 print(endTime - startTime)
 #Time difference of 0.09115911 secs
 ```
-Output the final results. The output saves the fitted model formulas for both the disease model and PRS model, and the original data in 'model.info'. The standard logistic regression is also in the output saved as 'res_glm'. The retrospective likelihood method output is 'res_normal'. 
+Output the final results. The output saves the fitted model formulas for both the disease model and PRS model, and the original data in 'model.info'. The retrospective likelihood method output is 'res_normal'. The standard logistic regression is also saved in the output as 'res_glm'. 
 ```
 attributes(res)
 #$names
@@ -116,6 +116,7 @@ The 'Estimate' is the estimated log odds ratio.
 The complete R codes and results for the data analysis of UK Biobank is available in R markdown.
 * [Incident breast cancer for postmenopausal and premenopausal women](https://raw.githack.com/ziqiaow/RetroGE/main/results/UKB_breastcancer.html)
 * [Incident colorectal cancer](https://raw.githack.com/ziqiaow/RetroGE/main/results/report_colorectal.html)
+
 Note that for real data applications, it is suggested to normalize the continuous variables that have largely varied scales for a stable numerical derivation.
  
 ## Questions
