@@ -63,10 +63,10 @@ Fit the retrospective likelihood method.
 startTime <- Sys.time()
 res = prs_e_function_gr(
     data = dat0,
-    formula = D ~ prs + envir1 + envir2 + factor(s1) + s2 + envir1:prs + envir2:prs,
-    formula_prs = prs ~ factor(s1) + s2,
-    facVar = c("s1"),
-    numDeriv = FALSE, #Use analytical score function (FALSE) for MLE or numerical gradient values (TRUE), note that the two results are similar but analytical is faster
+    formula = D ~ prs + envir1 + envir2 + factor(s1) + s2 + envir1:prs + envir2:prs, #Disease model
+    formula_prs = prs ~ factor(s1) + s2, #PRS mean model
+    facVar = c("s1"), #PRS variance
+    numDeriv = FALSE, #Use analytical score function for MLE (more accurate and faster)
     initial_empirical = TRUE, #Use the fitted values from logistic regression (disease model) and linear regression on the control samples (PRS model) for initial value inputs
     initial_eta_sigma = NULL,
     side0 = 2
