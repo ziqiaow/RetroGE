@@ -20,7 +20,7 @@ simFit <- function(ncontrol = 500,
                    beta_strata = c(0.1, 0.1, 0.1),
                    beta_strata_interact = c(0.4, 0.4, 0.4),
                    sigma_strata = c(0.25, 0.5, 1),
-                   mu_strata = c(1, 0.4, 0.8, 0.9)) {
+                   mu_strata = c(1, 0.2, 0.3, 0.2)) {
   n_pop = 1000000
   
   if (strata == TRUE) {
