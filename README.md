@@ -49,10 +49,17 @@ dim(dat0)
 table(dat0$D) #500 cases and 500 controls
 #  0   1 
 #500 500 
-head(dat0)
+dat0[1:5,]
+#  D          prs envir1     envir2 s1         s2
+#1 0  0.269289140      0  0.2074758  2  1.3675722
+#2 0 -0.012508509      1 -0.5201500  3 -0.9360032
+#3 0  1.025145443      1  1.1716256  3  0.2409941
+#4 0 -0.264052650      1 -1.0113151  1  0.1802841
+#5 0  0.008607869      1 -0.3353061  1  1.4849816
 ```
-Fit the retrospective likelihood method
+Fit the retrospective likelihood method.
 ```
+startTime <- Sys.time()
 res = prs_e_function_gr(
     data = dat0,
     formula = D ~ prs + envir1 + envir2 + factor(s1) + s2 + envir1:prs + envir2:prs,
@@ -67,12 +74,49 @@ res = prs_e_function_gr(
 #initial  value 1716.201381 
 #final  value 1422.216099 
 #converged
-  ```
+endTime <- Sys.time()
+```
+Print running time.
+```
+print(endTime - startTime)
+#Time difference of 0.09115911 secs
+```
+Output the final results. The output saves the fitted model formulas for both the disease model and PRS model, and the original data in 'model.info'. The standard logistic regression is also in the output saved as 'res_glm'. The retrospective likelihood method output is 'res_normal'. 
+```
+attributes(res)
+#$names
+#[1] "res_glm"    "res_normal" "model.info"
+attributes(res$model.info)
+#$names
+#[1] "data"        "formula"     "formula_prs" "facVar"     
+
+#Print the retrospective likelihood method results
+res$res_normal
+#                                Estimate  Std.Error      Z.value        Pvalue
+#(Intercept)                 -0.400981115 0.18232555  -2.19925904  2.785951e-02
+#prs                          0.626936447 0.14693917   4.26663937  1.984395e-05
+#envir11                      0.222213575 0.16759097   1.32592810  1.848635e-01
+#envir2                      -0.027940670 0.06714806  -0.41610541  6.773329e-01
+#factor(s1)2                 -0.133973149 0.17401381  -0.76989954  4.413595e-01
+#factor(s1)3                  0.004996946 0.17389114   0.02873606  9.770751e-01
+#s2                           0.512355750 0.07118163   7.19786516  6.116258e-13
+#prs:envir11                 -0.216526169 0.13755702  -1.57408307  1.154682e-01
+#prs:envir2                  -0.318925205 0.05699702  -5.59547137  2.200232e-08
+#eta_X.Intercept.            -0.150997513 0.01490880 -10.12807663  4.147267e-24
+#eta_factor.s1.2              0.218147832 0.03219422   6.77599418  1.235537e-11
+#eta_factor.s1.3              0.292126567 0.06963842   4.19490501  2.729860e-05
+#eta_s2                       0.193974076 0.01164614  16.65565978  2.752914e-62
+#sigma_stratadata[, facVar]1  0.242841841 0.01018782  23.83647848 1.398671e-125
+#sigma_stratadata[, facVar]2  0.491772020 0.01888508  26.04023814 1.735463e-149
+#sigma_stratadata[, facVar]3  0.978341123 0.03386884  28.88617162 1.781164e-183
+```
+The 'Estimate' is the estimated log odds ratio.
 
 ## Codes and Results of UK Biobank Data Analysis
 The complete R codes and results for the data analysis of UK Biobank is available in R markdown.
 * [Incident breast cancer for postmenopausal and premenopausal women](https://raw.githack.com/ziqiaow/RetroGE/main/results/UKB_breastcancer.html)
 * [Incident colorectal cancer](https://raw.githack.com/ziqiaow/RetroGE/main/results/report_colorectal.html)
-
+Note that for real data applications, it is suggested to normalize the continuous variables that have largely varied scales for a stable numerical derivation.
+ 
 ## Questions
 Please feel free to email any questions/suggestions at zwang389@jhu.edu
