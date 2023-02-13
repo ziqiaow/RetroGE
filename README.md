@@ -29,10 +29,11 @@ dat = simFit(
   betaGE_normPRS_bin = 0,
   betaGE_normPRS_norm = -0.4,
   E_bin_freq = 0.745,
-  strata = T,
-  interact_strata_prs = F,
+  strata = TRUE,
+  interact_strata_prs = FALSE,
   beta_strata = c(0.1, 0.3, 0.5),
-  mu_strata = c(1, 0.2, 0.3, 0.2)
+  mu_strata = c(1, 0.2, 0.3, 0.2),
+  sigma_strata = c(0.25, 0.5, 1)
 )
 #Disease prevalence:  0.011445
 ```
@@ -90,6 +91,19 @@ attributes(res$model.info)
 #$names
 #[1] "data"        "formula"     "formula_prs" "facVar"     
 
+#Print the standard logistic regression results
+res$res_glm
+#                 Estimate Std. Error      z value     Pr(>|z|)
+#(Intercept) -0.4191341519 0.18526102 -2.262397976 2.367283e-02
+#prs          0.7714796054 0.23948822  3.221367633 1.275804e-03
+#envir11      0.2536380216 0.17414419  1.456482807 1.452592e-01
+#envir2       0.0003224133 0.06909941  0.004665934 9.962771e-01
+#factor(s1)2 -0.1692431820 0.17499577 -0.967127259 3.334804e-01
+#factor(s1)3 -0.0088460375 0.17725614 -0.049905393 9.601978e-01
+#s2           0.5010261902 0.07239894  6.920352266 4.505219e-12
+#prs:envir11 -0.3657490663 0.25574916 -1.430108562 1.526859e-01
+#prs:envir2  -0.4391083120 0.09446156 -4.648539584 3.342935e-06
+
 #Print the retrospective likelihood method results
 res$res_normal
 #                                Estimate  Std.Error      Z.value        Pvalue
@@ -120,4 +134,4 @@ The complete R codes and results for the data analysis of UK Biobank is availabl
 Note that for real data applications, it is suggested to normalize the continuous variables that have largely varied scales for a stable numerical derivation.
  
 ## Questions
-Please feel free to email any questions/suggestions at zwang389@jhu.edu
+Please feel free to email me about any questions/suggestions at zwang389@jhu.edu
