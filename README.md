@@ -14,7 +14,7 @@ source("./R/RetroGE.R")
 source("./R/sim_data_function.R")
 ```
 
-First simulate some data. Suppose we simulate the data based on a full disease model, i.e., $Pr(D=1|Z,E,S) = \beta_ZZ+\beta_{E_1}E_1+\beta_{E_2}E_2$
+First simulate some data. Suppose we simulate the data based on a full disease model with two independent environmental variables $E_1$ and $E_2$ and two environmental variables $S_1$ and $S_2$ that are correlated to PRS ($Z$), i.e., $logit(Pr(D=1|Z,E,S)) = \beta_ZZ+\beta_{E_1}E_1+\beta_{E_2}E_2+\beta_{S_{1(1)}}S_{1(1)}+\beta_{S_{2(1)}}S_{2(1)}+\beta_{S_2}S_{2}+\beta_{E_1Z}E_1Z+\beta_{E_2Z}E_2Z+\beta_{S_{1(1)}Z}S_{1(1)}Z+\beta_{S_{2(1)}Z}S_{2(1)}Z+\beta_{S_2Z}S_{2}Z$
 ```
 dat = simFit(
   ncontrol = 500,
