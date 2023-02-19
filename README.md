@@ -124,7 +124,7 @@ res$res_normal
 #sigma_stratadata[, facVar]2  0.491772020 0.01888508  26.04023814 1.735463e-149
 #sigma_stratadata[, facVar]3  0.978341123 0.03386884  28.88617162 1.781164e-183
 ```
-The 'Estimate' is the estimated log odds ratio for the disease model. For the PRS model (eta and sigma), the 'Estimate' is the estimated regression coefficient $\eta_S$ and estimated standard deviation $\sigma_{S_1}$.
+In the printed retrospective likelihood method results, the 'Estimate' is the estimated log odds ratio for the disease model; for the PRS model (eta and sigma), the 'Estimate' is the estimated regression coefficient $\eta_S$ and estimated standard deviation $\sigma_{S_1}$.
 
 ## Codes and Results of UK Biobank Data Analysis
 The complete R codes and results for the data analysis of UK Biobank is available in R markdown.
