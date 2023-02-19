@@ -13,14 +13,14 @@ rm(list = ls())
 source("./R/RetroGE.R")
 source("./R/sim_data_function.R")
 ```
-First simulate some data based on a population disease model with two independent environmental variables $E_1$ (binary) and $E_2$ (continuous) and two environmental variables $S_1$ (categorical variable with 3 levels) and $S_2$ (continuous) that are correlated to PRS (Z), i.e., $$logit(Pr(D=1|Z,E,S)) = \alpha+\beta_ZZ+\beta_{E_1}E_1+\beta_{E_2}E_2+\beta_{S_{1(1)}}S_{1(1)}+\beta_{S_{2(1)}}S_{2(1)}+\beta_{S_2}S_{2}+\beta_{E_1Z}E_1Z+\beta_{E_2Z}E_2Z$$
+First simulate a full cohort of 100000 individuals based on a population disease model with two independent environmental variables $E_1$ (binary) and $E_2$ (continuous) and two environmental variables $S_1$ (categorical variable with 3 levels) and $S_2$ (continuous) that are correlated to PRS (Z), i.e., $$logit(Pr(D=1|Z,E,S)) = \alpha+\beta_ZZ+\beta_{E_1}E_1+\beta_{E_2}E_2+\beta_{S_{1(1)}}S_{1(1)}+\beta_{S_{2(1)}}S_{2(1)}+\beta_{S_2}S_{2}+\beta_{E_1Z}E_1Z+\beta_{E_2Z}E_2Z$$
 PRS value in the population follows
 $$Z|S \sim N(\eta_0+\eta_{S_{1(1)}}S_{1(1)}+\eta_{S_{2(1)}}S_{2(1)}+\eta_{S_{2}}S_{2},\sigma^2_{S_1})$$
 This is the underlying model we assumed in [Scenario 2](simulations/simulation.R) as described in the original article.
 ```
 set.seed(02122023)
 dat = simFit(
-  ncontrol = 500,
+  ncontrol = 500, #Simulate a cohort of 1000000 individuals, randomly select 500 controls and 500 cases
   ncase = 500,
   beta0 = -5,
   betaG_normPRS = 0.450,
@@ -124,7 +124,7 @@ res$res_normal
 #sigma_stratadata[, facVar]2  0.491772020 0.01888508  26.04023814 1.735463e-149
 #sigma_stratadata[, facVar]3  0.978341123 0.03386884  28.88617162 1.781164e-183
 ```
-The 'Estimate' is the estimated log odds ratio.
+The 'Estimate' is the estimated log odds ratio for the disease model. For the PRS model (eta and sigma), the 'Estimate' is the estimated regression coefficient $\eta_S$ and estimated standard deviation $\sigma_{S_1}$.
 
 ## Codes and Results of UK Biobank Data Analysis
 The complete R codes and results for the data analysis of UK Biobank is available in R markdown.
