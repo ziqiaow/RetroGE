@@ -131,7 +131,10 @@ The complete R codes and results for the data analysis of UK Biobank is availabl
 * [Incident breast cancer for postmenopausal and premenopausal women](https://raw.githack.com/ziqiaow/RetroGE/main/results/UKB_breastcancer.html)
 * [Incident colorectal cancer](https://raw.githack.com/ziqiaow/RetroGE/main/results/report_colorectal.html)
 
-Note that for real data applications, it is suggested to **normalize the continuous variables** that have largely varied scales for a stable numerical derivation. Simply use this R code to normalize the continuous variable x: scale(x,center = TRUE, scale = TRUE).
- 
+Note that for real data applications, it is suggested to **normalize the continuous variables** that have largely varied scales for a stable numerical derivation. Simply use this R code to normalize the continuous variable x: 
+```
+scale(x,center = TRUE, scale = TRUE).
+```
+
 ## Questions
 Please send your questions/suggestions to zwang389@jhu.edu
