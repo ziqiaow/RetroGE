@@ -133,7 +133,7 @@ The complete R codes and results for the data analysis of UK Biobank is availabl
 
 Note that for real data applications, it is suggested to **normalize the continuous variables** that have largely varied scales for a stable numerical derivation. Simply use this R code to normalize the continuous variable x: 
 ```
-scale(x,center = TRUE, scale = TRUE).
+scale(x,center = TRUE, scale = TRUE)
 ```
 
 ## Questions
