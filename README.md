@@ -10,6 +10,11 @@ using Polygenic Risk Scores in Case-Control Studies.
 We provide a simple example for running the retrospective likelihood method using simulated data. Complete R codes for the simulation study are in [simulations](simulations). The R function of the proposed method is in [RetroGE](R/RetroGE.R). The R function to simulate data is available here [sim_data_function](R/sim_data_function.R).
 ```
 rm(list = ls())
+library(devtools)
+source_url("https://github.com/ziqiaow/RetroGE/blob/main/R/RetroGE.R?raw=TRUE")
+source_url("https://github.com/ziqiaow/RetroGE/blob/main/R/sim_data_function.R?raw=TRUE")
+
+#If directly downloaded the R files from Github to your local directory
 source("./R/RetroGE.R")
 source("./R/sim_data_function.R")
 ```
