@@ -14,7 +14,7 @@ library(devtools)
 source_url("https://github.com/ziqiaow/RetroGE/blob/main/R/RetroGE.R?raw=TRUE")
 source_url("https://github.com/ziqiaow/RetroGE/blob/main/R/sim_data_function.R?raw=TRUE")
 
-#If directly downloaded the R files from Github to your local directory
+#If directly downloaded the R files from Github to your local directory, you can load the R functions using source().
 source("./R/RetroGE.R")
 source("./R/sim_data_function.R")
 ```
@@ -42,7 +42,7 @@ dat = simFit(
 )
 #Disease prevalence:  0.011445
 ```
-View the simulated case-control data matrix.
+View the simulated case-control data matrix, we randomly selected 500 cases and 500 controls.
 ```
 #Convert the list to a data frame
 dat0 = cbind(dat$D, dat$G, dat$E, dat$S)
@@ -63,7 +63,7 @@ dat0[1:5,]
 #4 0 -0.264052650      1 -1.0113151  1  0.1802841
 #5 0  0.008607869      1 -0.3353061  1  1.4849816
 ```
-Fit the retrospective likelihood method.
+Fit the retrospective likelihood method to the case-control dataset.
 ```
 startTime <- Sys.time()
 res = prs_e_function_gr(
