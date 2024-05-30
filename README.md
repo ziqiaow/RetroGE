@@ -3,8 +3,7 @@ A Retrospective Likelihood Method for Joint Modeling of Gene-Environment Interac
 
 **Reference**
 
-* Ziqiao Wang, Wen Shi, Raymond J. Carrol, and Nilanjan Chatterjee (2023). Joint Modeling of Gene-Environment Correlations and Interactions
-using Polygenic Risk Scores in Case-Control Studies.
+* Ziqiao Wang, Wen Shi, Raymond J Carroll, Nilanjan Chatterjee, Joint Modeling of Gene-Environment Correlations and Interactions Using Polygenic Risk Scores in Case-Control Studies, American Journal of Epidemiology, 2024; https://doi.org/10.1093/aje/kwae081
 
 ## Example Analysis
 We provide a simple example for running the retrospective likelihood method using simulated data. Complete R codes for the simulation study are in [simulations](simulations). The R function of the proposed method is in [RetroGE](R/RetroGE.R). The R function to simulate data is available here [sim_data_function](R/sim_data_function.R).
