@@ -130,6 +130,13 @@ res$res_normal
 ```
 In the printed retrospective likelihood method results, the 'Estimate' is the estimated log odds ratio for the disease model; for the PRS model (eta and sigma), the 'Estimate' is the estimated regression coefficient $\eta_S$ and estimated standard deviation $\sigma_{S_1}$.
 
+If the users prefer not adding stratification factors or variables in the PRS mean model, the condition in the function can be set as
+```
+formula_prs = prs~1
+facVar = NULL
+```
+
+
 ## Codes and Results of UK Biobank Data Analysis
 The complete R codes and results for the data analysis of UK Biobank is available in R markdown.
 * [Incident breast cancer for postmenopausal and premenopausal women](https://raw.githack.com/ziqiaow/RetroGE/main/results/UKB_breastcancer.html)
