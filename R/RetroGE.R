@@ -312,6 +312,8 @@ prs_e_function_gr <- function(data = dat0,
       facVar = facVar
     )
   res$model.info <- model
+  res$cov <- cov1
+  res$loglikelihood <- ret$value
   return(res)
   
 }
