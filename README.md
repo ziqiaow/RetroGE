@@ -86,11 +86,11 @@ Print running time.
 print(endTime - startTime)
 #Time difference of 0.09115911 secs
 ```
-Output the final results. The output saves the fitted model formulas for both the disease model and PRS model, and the original data in 'model.info'. The retrospective likelihood method output is 'res_normal'. The standard logistic regression is also saved in the output as 'res_glm'. 
+Output the final results. The output saves the fitted model formulas for both the disease model and PRS model, and the original data in 'model.info'. The retrospective likelihood method output is 'res_normal'. The standard logistic regression is also saved in the output as 'res_glm'. The log-likelihood is also in the results output. The estimated covariance matrix of the parameters in the disease model is 'cov'.
 ```
 attributes(res)
 #$names
-#[1] "res_glm"    "res_normal" "model.info"
+#[1] "res_glm"    "res_normal" "model.info"  "cov" "loglikelihood"
 attributes(res$model.info)
 #$names
 #[1] "data"        "formula"     "formula_prs" "facVar"     
