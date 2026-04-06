@@ -149,4 +149,4 @@ scale(x, center = TRUE, scale = TRUE)
 Another thing to mention is that when factor/categorical variables contain a group/category with fewer than 5 individuals, the algorithm may return error. Therefore, it is generally recommended to have categories with at least 5 samples in each group.
 
 ## Questions
-This software will be constantly updated, so please send your questions/suggestions to zwang389@jhu.edu to help improve the package.
+This software will be constantly updated, so please send your questions/suggestions to ziqiao.wang@virginia.edu to help improve the package.
