@@ -1,0 +1,7 @@
+citHeader("To cite RetroGE in publications use:")
+
+bibentry(bibtype = "Article",
+         title = "Joint Modeling of Gene-Environment Correlations and Interactions Using Polygenic Risk Scores in Case-Control Studies",
+         author = "Ziqiao Wang, Wen Shi, Raymond J Carroll, Nilanjan Chatterjee",
+         year = "2024", journal = "American Journal of Epidemiology",
+         doi = "10.1093/aje/kwae081")
